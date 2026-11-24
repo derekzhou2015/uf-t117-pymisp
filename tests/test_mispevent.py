@@ -554,6 +554,136 @@ class TestMISPEvent(unittest.TestCase):
         self.assertEqual(feed['Event']['_manifest'][me.uuid]['info'], 'Test feed')
         self.assertEqual(len(feed['Event']['Object'][0]['Attribute']), 2)
 
+    # ------------------------------------------------------------------
+    # Regression tests for the to_feed(with_distribution=...) defects.
+    #
+    # The old implementation mutated the class-level ``_fields_for_feed`` set
+    # in place (``self._fields_for_feed.add('distribution')``). Because no
+    # instance ever shadows that set, a single export polluted the whole class
+    # for the rest of the process, producing three layered, order-sensitive
+    # failure modes:
+    #   1. crash:      a locally built event without a distribution value made
+    #                  ``_to_feed`` raise when the option was enabled;
+    #   2. poisoning:  the crash (or any successful export with the option on)
+    #                  left 'distribution' in the shared class set, so later
+    #                  unrelated privacy-mode exports crashed as well;
+    #   3. leakage:    a later privacy-mode export of an event carrying
+    #                  distribution values leaked them into the sanitized
+    #                  output, contradicting the privacy guarantee.
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _build_feed_event(*, with_distribution: bool) -> MISPEvent:
+        """Self-contained event fixture (no on-disk test file required)."""
+        me = MISPEvent()
+        me.info = 'feed distribution regression'
+        org = MISPOrganisation()
+        org.name = 'TestOrg'
+        org.uuid = '123478'
+        me.Orgc = org
+        attribute = me.add_attribute('ip-dst', '8.8.8.8')
+        obj = me.add_object(name='file')
+        obj_attribute = obj.add_attribute('filename', 'foo.exe')
+        if with_distribution:
+            # Simulate an event loaded from a MISP instance.
+            me.distribution = 1
+            attribute.distribution = 1
+            obj.distribution = 1
+            obj_attribute.distribution = 1
+        return me
+
+    def _assert_no_distribution_anywhere(self, event_dict: dict) -> None:
+        """Privacy-mode exclusion assertion: no distribution/sharing data may
+        survive at any nesting level of the sanitized export."""
+        self.assertNotIn('distribution', event_dict)
+        self.assertNotIn('SharingGroup', event_dict)
+        self.assertNotIn('sharing_group_id', event_dict)
+        for attribute in event_dict.get('Attribute', []):
+            self.assertNotIn('distribution', attribute)
+            self.assertNotIn('SharingGroup', attribute)
+        for obj in event_dict.get('Object', []):
+            self.assertNotIn('distribution', obj)
+            self.assertNotIn('SharingGroup', obj)
+            for attribute in obj.get('Attribute', []):
+                self.assertNotIn('distribution', attribute)
+                self.assertNotIn('SharingGroup', attribute)
+
+    def test_feed_with_distribution_missing_does_not_crash(self) -> None:
+        """Form 1 (crash): a local event without a distribution value must
+        still export when with_distribution=True; the unset key is omitted."""
+        me = self._build_feed_event(with_distribution=False)
+        # Must not raise PyMISPError('The field distribution is required ...')
+        feed = me.to_feed(with_distribution=True)
+        event = feed['Event']
+        # MISPEvent and its plain attribute have no distribution locally.
+        self.assertNotIn('distribution', event)
+        self.assertNotIn('distribution', event['Attribute'][0])
+        self.assertNotIn('distribution', event['Object'][0]['Attribute'][0])
+        # MISPObject defaults to distribution=5 (inherit) in its constructor;
+        # a present value is still exported while the option is on.
+        self.assertEqual(event['Object'][0]['distribution'], '5')
+
+    def test_feed_distribution_export_does_not_mutate_class_state(self) -> None:
+        """The class-level _fields_for_feed sets must remain byte-for-byte
+        unchanged by any export, with the option on or off."""
+        from pymisp.mispevent import MISPObject as _MISPObject
+        baseline_event = set(MISPEvent._fields_for_feed)
+        baseline_attribute = set(MISPAttribute._fields_for_feed)
+        baseline_object = set(_MISPObject._fields_for_feed)
+
+        self._build_feed_event(with_distribution=True).to_feed(with_distribution=True)
+        self._build_feed_event(with_distribution=False).to_feed(with_distribution=True)
+        self._build_feed_event(with_distribution=True).to_feed(with_distribution=False)
+        self._build_feed_event(with_distribution=False).to_feed(with_distribution=False)
+
+        self.assertEqual(MISPEvent._fields_for_feed, baseline_event)
+        self.assertEqual(MISPAttribute._fields_for_feed, baseline_attribute)
+        self.assertEqual(_MISPObject._fields_for_feed, baseline_object)
+        self.assertNotIn('distribution', MISPEvent._fields_for_feed)
+        self.assertNotIn('distribution', MISPAttribute._fields_for_feed)
+        self.assertNotIn('distribution', _MISPObject._fields_for_feed)
+
+    def test_feed_privacy_mode_excludes_distribution(self) -> None:
+        """Form 3 (leak) + the privacy exclusion assertion: an event carrying
+        distribution values must not expose any of them in privacy mode."""
+        me = self._build_feed_event(with_distribution=True)
+        event = me.to_feed(with_distribution=False)['Event']
+        self._assert_no_distribution_anywhere(event)
+
+    def test_feed_distribution_included_when_requested_and_present(self) -> None:
+        """The option must keep working: present values are exported."""
+        me = self._build_feed_event(with_distribution=True)
+        event = me.to_feed(with_distribution=True)['Event']
+        self.assertEqual(event['distribution'], '1')
+        self.assertEqual(event['Attribute'][0]['distribution'], '1')
+        self.assertEqual(event['Object'][0]['distribution'], '1')
+        self.assertEqual(event['Object'][0]['Attribute'][0]['distribution'], '1')
+
+    def test_feed_crash_then_poisoning_then_leak_sequence(self) -> None:
+        """Forms 1+2+3 as one order-sensitive scenario: replay the exact
+        historical sequence that used to break privacy exports for the rest
+        of the process lifetime."""
+        # Step 1: a local event (no distribution) exported with the option on.
+        # This used to crash *and* leave 'distribution' in the class sets.
+        crashing_event = self._build_feed_event(with_distribution=False)
+        crashing_event.to_feed(with_distribution=True)  # must not raise now
+
+        # Step 2 (poisoning): an unrelated fresh local event in privacy mode
+        # used to crash because the shared class set had been polluted.
+        unrelated_local = self._build_feed_event(with_distribution=False)
+        event = unrelated_local.to_feed(with_distribution=False)['Event']
+        self._assert_no_distribution_anywhere(event)
+
+        # Step 3 (leak): an unrelated fresh event carrying distribution values
+        # used to leak them into its privacy-mode export.
+        unrelated_remote = self._build_feed_event(with_distribution=True)
+        event = unrelated_remote.to_feed(with_distribution=False)['Event']
+        self._assert_no_distribution_anywhere(event)
+
+        # And a further with_distribution=True export still behaves correctly.
+        event = unrelated_remote.to_feed(with_distribution=True)['Event']
+        self.assertEqual(event['distribution'], '1')
+
     def test_object_templates(self) -> None:
         me = MISPEvent()
         for template in glob.glob(str(me.misp_objects_path / '*' / 'definition.json')):

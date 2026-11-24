@@ -12,6 +12,7 @@ from enum import Enum
 from typing import Any
 from collections.abc import Mapping
 from collections.abc import MutableMapping
+from collections.abc import Collection
 from functools import lru_cache
 from pathlib import Path
 
@@ -221,13 +222,19 @@ class AbstractMISP(MutableMapping, MISPFileCache, metaclass=ABCMeta):  # type: i
         """This method is used by the JSON encoder"""
         return self.to_dict()
 
-    def _to_feed(self) -> dict[str, Any]:
+    def _to_feed(self, extra_fields: Collection[str] | None = None) -> dict[str, Any]:
         if not hasattr(self, '_fields_for_feed') or not self._fields_for_feed:
             raise PyMISPError('Unable to export in the feed format, _fields_for_feed is missing.')
         if hasattr(self, '_set_default') and callable(self._set_default):
             self._set_default()
+        # extra_fields are per-call optional fields (e.g. 'distribution' when
+        # with_distribution=True). They are merged into a local view only: the
+        # class-level _fields_for_feed set must never be mutated, otherwise one
+        # export pollutes every other export done in the same process. A missing
+        # optional field is skipped instead of raising.
+        fields = self._fields_for_feed | (set(extra_fields) if extra_fields else set())
         to_return = {}
-        for field in sorted(self._fields_for_feed):
+        for field in sorted(fields):
             if getattr(self, field, None) is not None:
                 if field in ['timestamp', 'publish_timestamp']:
                     to_return[field] = self._datetime_to_timestamp(getattr(self, field))
@@ -236,8 +243,8 @@ class AbstractMISP(MutableMapping, MISPFileCache, metaclass=ABCMeta):  # type: i
                 else:
                     to_return[field] = getattr(self, field)
             else:
-                if field in ['data', 'first_seen', 'last_seen', 'deleted']:
-                    # special fields
+                if field in ['data', 'first_seen', 'last_seen', 'deleted'] or (extra_fields and field in extra_fields):
+                    # special fields, and per-call optional fields, are simply omitted when unset
                     continue
                 raise PyMISPError(f'The field {field} is required in {self.__class__.__name__} when generating a feed.')
         to_return = _int_to_str(to_return)

@@ -479,9 +479,10 @@ class MISPAttribute(AnalystDataBehaviorMixin):
             self.timestamp = datetime.timestamp(datetime.now())
 
     def _to_feed(self, with_distribution: bool=False) -> dict[str, Any]:
-        if with_distribution:
-            self._fields_for_feed.add('distribution')
-        to_return = super()._to_feed()
+        # 'distribution' is passed as a per-call optional field so the class-level
+        # _fields_for_feed set is never mutated (no cross-export state pollution).
+        extra_fields = ('distribution',) if with_distribution else None
+        to_return = super()._to_feed(extra_fields=extra_fields)
         if self.data:
             to_return['data'] = base64.b64encode(self.data.getvalue()).decode()
         if self.tags:
@@ -865,15 +866,16 @@ class MISPObject(AnalystDataBehaviorMixin):
             self.timestamp = datetime.timestamp(datetime.now())
 
     def _to_feed(self, with_distribution: bool=False) -> dict[str, Any]:
-        if with_distribution:
-            self._fields_for_feed.add('distribution')
+        # 'distribution' is passed as a per-call optional field so the class-level
+        # _fields_for_feed set is never mutated (no cross-export state pollution).
         if not hasattr(self, 'template_uuid'):  # workaround for old events where the template_uuid was not yet mandatory
             self.template_uuid = str(uuid.uuid5(uuid.UUID("9319371e-2504-4128-8410-3741cebbcfd3"), self.name))
         if not hasattr(self, 'description'):    # workaround for old events where description is not always set
             self.description = '<unknown>'
         if not hasattr(self, 'meta-category'):  # workaround for old events where meta-category is not always set
             setattr(self, 'meta-category', 'misc')
-        to_return = super()._to_feed()
+        extra_fields = ('distribution',) if with_distribution else None
+        to_return = super()._to_feed(extra_fields=extra_fields)
         if self.references:
             to_return['ObjectReference'] = [reference._to_feed() for reference in self.references]
         if with_distribution:
@@ -1713,10 +1715,11 @@ class MISPEvent(AnalystDataBehaviorMixin):
                 and int(self.distribution) not in valid_distributions):
             return {}
 
-        if with_distribution:
-            self._fields_for_feed.add('distribution')
-
-        to_return = super()._to_feed()
+        # 'distribution' is passed as a per-call optional field so the class-level
+        # _fields_for_feed set is never mutated (no cross-export state pollution).
+        # A locally built event without a distribution value is exported without
+        # that key rather than crashing.
+        to_return = super()._to_feed(extra_fields=('distribution',) if with_distribution else None)
         if with_meta:
             to_return['_hashes'] = []
             to_return['_manifest'] = self.manifest
@@ -1737,8 +1740,6 @@ class MISPEvent(AnalystDataBehaviorMixin):
             for obj in self.objects:
                 if (valid_distributions and obj.get('distribution') is not None and obj.distribution not in valid_distributions):
                     continue
-                if with_distribution:
-                    obj._fields_for_feed.add('distribution')
                 obj_to_attach = obj._to_feed(with_distribution=with_distribution)
                 obj_to_attach['Attribute'] = []
                 for attribute in obj.attributes:
