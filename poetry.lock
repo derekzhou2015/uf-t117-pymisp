@@ -2358,18 +2358,20 @@ test = ["defusedxml (>=0.7.1)"]
 
 [[package]]
 name = "sphinx-autodoc-typehints"
-version = "3.17.5"
+version = "3.17.7"
 description = "Render Python type hints in Sphinx autodoc documentation"
 optional = true
 python-versions = ">=3.12"
 groups = ["main"]
 markers = "python_version >= \"3.13\" and extra == \"docs\""
 files = [
-    {file = "sphinx_autodoc_typehints-3.17.5-py3-none-any.whl", hash = "sha256:6cf3aa57b85bb5991ad8892872c87acde794efbd2fd280a73b64c33681c4d2f1"},
-    {file = "sphinx_autodoc_typehints-3.17.5.tar.gz", hash = "sha256:8eaad05b05b765b3bb4c2cf1c1410eacce9d31a156d92cac9eb21a0a9099c90d"},
+    {file = "sphinx_autodoc_typehints-3.17.7-py3-none-any.whl", hash = "sha256:ed74adcd3f54f6c9530a7ffebe52c6c771c1371248641208b3d69fe4e88ff3bb"},
+    {file = "sphinx_autodoc_typehints-3.17.7.tar.gz", hash = "sha256:7796aec473aafac09d37158586fe96092ac50c4c66b427b24b7101343ce084bd"},
 ]
 
 [package.dependencies]
+docutils = ">=0.21"
+pygments = ">=2.17"
 sphinx = ">=9.1"
 typing-extensions = {version = ">=4.16", markers = "python_version < \"3.15\""}
 
@@ -2865,4 +2867,4 @@ virustotal = ["validators", "validators"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11,<3.16"
-content-hash = "10b21e08d185193476383ae97884d5400bfa652cec56822f7a930a1e7e925ef1"
+content-hash = "beae9eae41c5c7fb988137dfaa6f5d3b98cff4a2cee26e37c7a62d0df15e0935"
