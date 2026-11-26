@@ -41,7 +41,7 @@ class TestMISPEvent(unittest.TestCase):
         self.mispevent.set_date("2017-12-31")  # test the set date method
 
     def test_simple(self) -> None:
-        with open('tests/mispevent_testfiles/simple.json') as f:
+        with open('tests/mispevent_testfiles/simple.json', encoding='utf-8') as f:
             ref_json = json.load(f)
         del self.mispevent.uuid
         if HAS_ORJSON:
@@ -52,7 +52,7 @@ class TestMISPEvent(unittest.TestCase):
     def test_event(self) -> None:
         self.init_event()
         self.mispevent.publish()
-        with open('tests/mispevent_testfiles/event.json') as f:
+        with open('tests/mispevent_testfiles/event.json', encoding='utf-8') as f:
             ref_json = json.load(f)
         del self.mispevent.uuid
         if HAS_ORJSON:
@@ -62,7 +62,7 @@ class TestMISPEvent(unittest.TestCase):
 
     def test_loadfile(self) -> None:
         self.mispevent.load_file('tests/mispevent_testfiles/event.json')
-        with open('tests/mispevent_testfiles/event.json') as f:
+        with open('tests/mispevent_testfiles/event.json', encoding='utf-8') as f:
             ref_json = json.load(f)
         del self.mispevent.uuid
         if HAS_ORJSON:
@@ -85,7 +85,7 @@ class TestMISPEvent(unittest.TestCase):
         new_tag = MISPTag()
         new_tag.from_dict(name='foo')
         self.mispevent.add_tag(new_tag)
-        with open('tests/mispevent_testfiles/event_tags.json') as f:
+        with open('tests/mispevent_testfiles/event_tags.json', encoding='utf-8') as f:
             ref_json = json.load(f)
         del self.mispevent.uuid
         if HAS_ORJSON:
@@ -95,7 +95,7 @@ class TestMISPEvent(unittest.TestCase):
 
     def test_event_galaxy(self) -> None:
         self.init_event()
-        with open('tests/mispevent_testfiles/galaxy.json') as f:
+        with open('tests/mispevent_testfiles/galaxy.json', encoding='utf-8') as f:
             galaxy = json.load(f)
         misp_galaxy = MISPGalaxy()
         misp_galaxy.from_dict(**galaxy)
@@ -113,7 +113,7 @@ class TestMISPEvent(unittest.TestCase):
         attr_tags = self.mispevent.get_attribute_tag('bar.exe')
         self.assertEqual(self.mispevent.attributes[0].tags[0].name, 'osint')
         self.assertEqual(attr_tags[0].name, 'osint')
-        with open('tests/mispevent_testfiles/attribute.json') as f:
+        with open('tests/mispevent_testfiles/attribute.json', encoding='utf-8') as f:
             ref_json = json.load(f)
         del self.mispevent.uuid
         if HAS_ORJSON:
@@ -123,7 +123,7 @@ class TestMISPEvent(unittest.TestCase):
         # Fake setting an attribute ID for testing
         self.mispevent.attributes[0].id = 42
         self.mispevent.delete_attribute('42')
-        with open('tests/mispevent_testfiles/attribute_del.json') as f:
+        with open('tests/mispevent_testfiles/attribute_del.json', encoding='utf-8') as f:
             ref_json = json.load(f)
         if HAS_ORJSON:
             self.assertEqual(self.mispevent.to_json(sort_keys=sort_keys, indent=indent), dumps(ref_json, option=sort_keys | indent).decode())
@@ -132,7 +132,7 @@ class TestMISPEvent(unittest.TestCase):
 
     def test_attribute_galaxy(self) -> None:
         self.init_event()
-        with open('tests/mispevent_testfiles/galaxy.json') as f:
+        with open('tests/mispevent_testfiles/galaxy.json', encoding='utf-8') as f:
             galaxy = json.load(f)
         misp_galaxy = MISPGalaxy()
         misp_galaxy.from_dict(**galaxy)
@@ -179,7 +179,7 @@ class TestMISPEvent(unittest.TestCase):
         reference = self.mispevent.objects[0].add_reference(self.mispevent.objects[1], 'baz', comment='foo')
         del reference.uuid
         self.assertEqual(self.mispevent.objects[0].references[0].relationship_type, 'baz')
-        with open('tests/mispevent_testfiles/event_obj_attr_tag.json') as f:
+        with open('tests/mispevent_testfiles/event_obj_attr_tag.json', encoding='utf-8') as f:
             ref_json = json.load(f)
         del self.mispevent.uuid
         if HAS_ORJSON:
@@ -193,7 +193,7 @@ class TestMISPEvent(unittest.TestCase):
         self.mispevent.objects[0].add_attribute('filename', value='bar')
         self.mispevent.objects[0].add_tag('osint')  # type: ignore[attr-defined]
         self.mispevent.objects[0].uuid = 'a'
-        with open('tests/mispevent_testfiles/event_obj_tag.json') as f:
+        with open('tests/mispevent_testfiles/event_obj_tag.json', encoding='utf-8') as f:
             ref_json = json.load(f)
         if HAS_ORJSON:
             self.assertEqual(self.mispevent.to_json(sort_keys=sort_keys, indent=indent), dumps(ref_json, option=sort_keys | indent).decode())
@@ -206,7 +206,7 @@ class TestMISPEvent(unittest.TestCase):
         misp_object.add_attribute('username', 'adulau')
         misp_object.add_attribute('repository', 'cve-search')
         self.mispevent.add_object(misp_object)
-        with open('tests/mispevent_testfiles/galaxy.json') as f:
+        with open('tests/mispevent_testfiles/galaxy.json', encoding='utf-8') as f:
             galaxy = json.load(f)
         misp_galaxy = MISPGalaxy()
         misp_galaxy.from_dict(**galaxy)
@@ -230,7 +230,7 @@ class TestMISPEvent(unittest.TestCase):
         del a.uuid
         attribute = self.mispevent.attributes[0]
         self.assertEqual(attribute.malware_binary, pseudofile)
-        with open('tests/mispevent_testfiles/malware.json') as f:
+        with open('tests/mispevent_testfiles/malware.json', encoding='utf-8') as f:
             ref_json = json.load(f)
         del self.mispevent.uuid
         if HAS_ORJSON:
@@ -249,7 +249,7 @@ class TestMISPEvent(unittest.TestCase):
     def test_sighting(self) -> None:
         sighting = MISPSighting()
         sighting.from_dict(value='1', type='bar', timestamp=11111111)
-        with open('tests/mispevent_testfiles/sighting.json') as f:
+        with open('tests/mispevent_testfiles/sighting.json', encoding='utf-8') as f:
             ref_json = json.load(f)
         if HAS_ORJSON:
             self.assertEqual(sighting.to_json(sort_keys=sort_keys, indent=indent), dumps(ref_json, option=sort_keys | indent).decode())
@@ -258,7 +258,7 @@ class TestMISPEvent(unittest.TestCase):
 
     def test_existing_event(self) -> None:
         self.mispevent.load_file('tests/mispevent_testfiles/existing_event.json')
-        with open('tests/mispevent_testfiles/existing_event.json') as f:
+        with open('tests/mispevent_testfiles/existing_event.json', encoding='utf-8') as f:
             ref_json = json.load(f)
 
         if HAS_ORJSON:
@@ -268,7 +268,7 @@ class TestMISPEvent(unittest.TestCase):
 
     def test_shadow_attributes_existing(self) -> None:
         self.mispevent.load_file('tests/mispevent_testfiles/shadow.json')
-        with open('tests/mispevent_testfiles/shadow.json') as f:
+        with open('tests/mispevent_testfiles/shadow.json', encoding='utf-8') as f:
             ref_json = json.load(f)
         if HAS_ORJSON:
             self.assertEqual(self.mispevent.to_json(sort_keys=sort_keys, indent=indent), dumps(ref_json, option=sort_keys | indent).decode())
@@ -284,7 +284,7 @@ class TestMISPEvent(unittest.TestCase):
         del a.uuid
         p = self.mispevent.attributes[0].add_proposal(type='filename', value='bar.pdf')
         del p.uuid
-        with open('tests/mispevent_testfiles/proposals.json') as f:
+        with open('tests/mispevent_testfiles/proposals.json', encoding='utf-8') as f:
             ref_json = json.load(f)
         if HAS_ORJSON:
             self.assertEqual(self.mispevent.to_json(sort_keys=sort_keys, indent=indent), dumps(ref_json, option=sort_keys | indent).decode())
@@ -303,7 +303,7 @@ class TestMISPEvent(unittest.TestCase):
         del a.uuid
         self.mispevent.objects[0].uuid = 'a'
         self.mispevent.objects[1].uuid = 'b'
-        with open('tests/mispevent_testfiles/event_obj_def_param.json') as f:
+        with open('tests/mispevent_testfiles/event_obj_def_param.json', encoding='utf-8') as f:
             ref_json = json.load(f)
         del self.mispevent.uuid
         if HAS_ORJSON:
@@ -323,7 +323,7 @@ class TestMISPEvent(unittest.TestCase):
         a = self.mispevent.objects[0].add_attribute('nameserver', value='ns2.example.com', disable_correlation=False, to_ids=True, category='External analysis')
         del a.uuid
         self.mispevent.objects[0].uuid = 'a'
-        with open('tests/mispevent_testfiles/def_param.json') as f:
+        with open('tests/mispevent_testfiles/def_param.json', encoding='utf-8') as f:
             ref_json = json.load(f)
         del self.mispevent.uuid
         if HAS_ORJSON:
@@ -405,7 +405,7 @@ class TestMISPEvent(unittest.TestCase):
         self.assertTrue(self.mispevent.objects[0].attributes[0].edited)
         self.assertTrue(self.mispevent.objects[0].edited)
         self.assertTrue(self.mispevent.edited)
-        with open('tests/mispevent_testfiles/existing_event_edited.json') as f:
+        with open('tests/mispevent_testfiles/existing_event_edited.json', encoding='utf-8') as f:
             ref_json = json.load(f)
         if HAS_ORJSON:
             self.assertEqual(self.mispevent.to_json(sort_keys=sort_keys, indent=indent), dumps(ref_json, option=sort_keys | indent).decode())
@@ -419,7 +419,7 @@ class TestMISPEvent(unittest.TestCase):
 
     def test_userdefined_object_custom_template(self) -> None:
         self.init_event()
-        with open('tests/mispevent_testfiles/test_object_template/definition.json') as f:
+        with open('tests/mispevent_testfiles/test_object_template/definition.json', encoding='utf-8') as f:
             template = json.load(f)
         self.mispevent.add_object(name='test_object_template', strict=True,
                                   misp_objects_template_custom=template)
@@ -456,7 +456,7 @@ class TestMISPEvent(unittest.TestCase):
 
         self.mispevent.objects[0].attributes = self.mispevent.objects[0].attributes[:2]
         self.mispevent.objects[0].uuid = 'a'
-        with open('tests/mispevent_testfiles/misp_custom_obj.json') as f:
+        with open('tests/mispevent_testfiles/misp_custom_obj.json', encoding='utf-8') as f:
             ref_json = json.load(f)
         del self.mispevent.uuid
         if HAS_ORJSON:
@@ -499,7 +499,7 @@ class TestMISPEvent(unittest.TestCase):
 
         self.mispevent.objects[0].attributes = self.mispevent.objects[0].attributes[:2]
         self.mispevent.objects[0].uuid = 'a'
-        with open('tests/mispevent_testfiles/misp_custom_obj.json') as f:
+        with open('tests/mispevent_testfiles/misp_custom_obj.json', encoding='utf-8') as f:
             ref_json = json.load(f)
         del self.mispevent.uuid
         if HAS_ORJSON:
@@ -554,10 +554,104 @@ class TestMISPEvent(unittest.TestCase):
         self.assertEqual(feed['Event']['_manifest'][me.uuid]['info'], 'Test feed')
         self.assertEqual(len(feed['Event']['Object'][0]['Attribute']), 2)
 
+    def _make_feed_event(self, distribution: int | None = None) -> MISPEvent:
+        me = MISPEvent()
+        me.info = 'Test feed distribution'
+        org = MISPOrganisation()
+        org.name = 'TestOrg'
+        org.uuid = '123478'
+        me.Orgc = org
+        attribute = me.add_attribute('ip-dst', '8.8.8.8')
+        obj = me.add_object(name='file')
+        obj_attributes = obj.add_attributes('filename', 'foo.exe')
+        if distribution is not None:
+            me.distribution = distribution
+            attribute.distribution = distribution
+            obj.distribution = distribution
+            for obj_attribute in obj_attributes:
+                obj_attribute.distribution = distribution
+        return me
+
+    def _assert_feed_privacy_clean(self, feed: dict) -> None:
+        # Privacy mode (with_distribution=False) must not leak distribution
+        # information at any level of the export.
+        event = feed['Event']
+        for key in ('distribution', 'SharingGroup', 'sharing_group_id'):
+            self.assertNotIn(key, event)
+        for attribute in event.get('Attribute', []):
+            for key in ('distribution', 'SharingGroup', 'sharing_group_id'):
+                self.assertNotIn(key, attribute)
+        for obj in event.get('Object', []):
+            for key in ('distribution', 'SharingGroup', 'sharing_group_id'):
+                self.assertNotIn(key, obj)
+            for attribute in obj.get('Attribute', []):
+                for key in ('distribution', 'SharingGroup', 'sharing_group_id'):
+                    self.assertNotIn(key, attribute)
+
+    def test_feed_with_distribution_missing_value(self) -> None:
+        # Locally built events have no distribution set: exporting with
+        # with_distribution=True must not crash, the key is simply omitted
+        # where no value exists.
+        me = self._make_feed_event()
+        feed = me.to_feed(with_distribution=True)
+        event = feed['Event']
+        self.assertNotIn('distribution', event)
+        self.assertNotIn('distribution', event['Attribute'][0])
+        # MISPObject defaults distribution to 5 (inherit), so the value
+        # exists and is exported.
+        self.assertEqual(event['Object'][0]['distribution'], '5')
+        self.assertNotIn('distribution', event['Object'][0]['Attribute'][0])
+
+    def test_feed_with_distribution_exports_field(self) -> None:
+        # With the option enabled and values present, distribution is
+        # exported at every level (integers are stringified in feeds).
+        me = self._make_feed_event(distribution=1)
+        feed = me.to_feed(with_distribution=True)
+        event = feed['Event']
+        self.assertEqual(event['distribution'], '1')
+        self.assertEqual(event['Attribute'][0]['distribution'], '1')
+        self.assertEqual(event['Object'][0]['distribution'], '1')
+        self.assertEqual(event['Object'][0]['Attribute'][0]['distribution'], '1')
+
+    def test_feed_export_does_not_poison_class_state(self) -> None:
+        # A with_distribution=True export must not mutate the class-level
+        # _fields_for_feed sets, and must not break later privacy exports
+        # of unrelated events in the same process.
+        event_fields = set(MISPEvent._fields_for_feed)
+        attribute_fields = set(MISPAttribute._fields_for_feed)
+        object_fields = set(MISPObject._fields_for_feed)
+
+        me_restricted = self._make_feed_event(distribution=1)
+        me_restricted.to_feed(with_distribution=True)
+
+        self.assertEqual(MISPEvent._fields_for_feed, event_fields)
+        self.assertEqual(MISPAttribute._fields_for_feed, attribute_fields)
+        self.assertEqual(MISPObject._fields_for_feed, object_fields)
+
+        # An unrelated event without distribution must still export in
+        # privacy mode after the restricted export above.
+        me_other = self._make_feed_event()
+        self._assert_feed_privacy_clean(me_other.to_feed())
+        # And an unrelated event *with* distribution must not leak it
+        # into a privacy-mode export either.
+        me_other_with_dist = self._make_feed_event(distribution=1)
+        self._assert_feed_privacy_clean(me_other_with_dist.to_feed())
+
+    def test_feed_privacy_mode_excludes_distribution_order_sensitive(self) -> None:
+        me = self._make_feed_event(distribution=1)
+        # Privacy export before any restricted export: clean.
+        self._assert_feed_privacy_clean(me.to_feed())
+        # Restricted export on the same event: distribution included.
+        self.assertEqual(me.to_feed(with_distribution=True)['Event']['distribution'], '1')
+        # Privacy export again on the same event afterwards: still clean.
+        self._assert_feed_privacy_clean(me.to_feed())
+        # Privacy export of a fresh event afterwards: still clean.
+        self._assert_feed_privacy_clean(self._make_feed_event(distribution=1).to_feed())
+
     def test_object_templates(self) -> None:
         me = MISPEvent()
         for template in glob.glob(str(me.misp_objects_path / '*' / 'definition.json')):
-            with open(template) as f:
+            with open(template, encoding='utf-8') as f:
                 t_json = json.load(f)
                 if 'requiredOneOf' in t_json:
                     obj_relations = set(t_json['attributes'].keys())
@@ -574,7 +668,7 @@ class TestMISPEvent(unittest.TestCase):
                         self.assertTrue(subset, f'{t_json["name"]} - {obj_relation}')
 
     def test_git_vuln_finder(self) -> None:
-        with open('tests/git-vuln-finder-quagga.json') as f:
+        with open('tests/git-vuln-finder-quagga.json', encoding='utf-8') as f:
             dump = json.load(f)
 
         for vuln in dump.values():

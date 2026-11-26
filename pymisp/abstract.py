@@ -221,13 +221,15 @@ class AbstractMISP(MutableMapping, MISPFileCache, metaclass=ABCMeta):  # type: i
         """This method is used by the JSON encoder"""
         return self.to_dict()
 
-    def _to_feed(self) -> dict[str, Any]:
-        if not hasattr(self, '_fields_for_feed') or not self._fields_for_feed:
+    def _to_feed(self, fields_for_feed: set[str] | None = None) -> dict[str, Any]:
+        if fields_for_feed is None:
+            fields_for_feed = getattr(self, '_fields_for_feed', None)
+        if not fields_for_feed:
             raise PyMISPError('Unable to export in the feed format, _fields_for_feed is missing.')
         if hasattr(self, '_set_default') and callable(self._set_default):
             self._set_default()
         to_return = {}
-        for field in sorted(self._fields_for_feed):
+        for field in sorted(fields_for_feed):
             if getattr(self, field, None) is not None:
                 if field in ['timestamp', 'publish_timestamp']:
                     to_return[field] = self._datetime_to_timestamp(getattr(self, field))
